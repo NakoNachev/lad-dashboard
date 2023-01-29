@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import json
 import streamlit as st
+import plotly.graph_objects as go
 
 # load json file
 f = open('Top20k.json')
@@ -41,9 +42,56 @@ def get_keys_and_their_values_that_are_unique():
 
     return dict
 
+def get_organizer_and_their_courses_total() -> dict:
+    """ {'Veranstalter1': 50, 'Veranstalter2': 60} .. """
+    dict = {}
+    for item in json_data:
+        if item['Veranstaltername'] in dict.keys():
+            dict[item['Veranstaltername']] += 1
+        else:
+            dict[item['Veranstaltername']] = 1
+    return dict
+
+def get_organizer_and_their_courses_total_bar_values(n: int, is_top: bool):
+    data = get_top_or_bottom_n_organizers(n, is_top)
+    return list(data.keys()), list(data.values())
+
+def get_top_or_bottom_n_organizers(n: int, is_top: bool):
+    if is_top:
+        return dict(sorted(get_organizer_and_their_courses_total().items(), key=lambda x: x[1], reverse=True)[0:n])
+    else:
+        return dict(sorted(get_organizer_and_their_courses_total().items(), key=lambda x: x[1], reverse=True)[-n-1:-1])
+
+def organizers_and_their_courses_percentage_from_total():
+    org_courses_total_dict = get_organizer_and_their_courses_total()
+    total_courses = len(list(json_data))
+    for key in org_courses_total_dict:
+        org_courses_total_dict[key] = (org_courses_total_dict[key] / total_courses)*100
+    return org_courses_total_dict
+
+
+col1, col2 = st.columns([3,3])
+
 table_unique_df = pd.DataFrame.from_dict(get_keys_and_their_values_that_are_unique(), orient='index', columns=['Values']).reset_index()
 table_unique_df.rename(columns={'index':'Key'},inplace=True)
-st.table(table_unique_df)
-st.map(df)
+table_top_organizers_df = pd.DataFrame.from_dict(get_top_or_bottom_n_organizers(3, True), orient='index', columns=['Values']).reset_index()
+table_top_organizers_df.rename(columns={'index':'Key'},inplace=True)
+col1.subheader('Top 3 Veranstalter')
+col1.table(table_top_organizers_df)
+
+y_values,x_values = get_organizer_and_their_courses_total_bar_values(20,True)
+
+fig = go.Figure(go.Bar(
+            x=x_values,
+            y=y_values,
+            orientation='h'))
+fig.update_layout(yaxis=dict(autorange="reversed"))
+col1.subheader('Top 20 Veranstalter visualisiert')
+col1.plotly_chart(fig, use_container_width=True)
+
+col2.subheader('Dataset eindeutige Schlüssel')
+col2.table(table_unique_df)
+col2.subheader('Kurse Standorte (lat,lon)')
+col2.map(df)
 
 
