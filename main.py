@@ -3,6 +3,7 @@ import numpy as np
 import json
 import streamlit as st
 import plotly.graph_objects as go
+from streamlit_timeline import timeline
 
 # load json file
 f = open('Top20k.json')
@@ -95,3 +96,45 @@ col2.subheader('Kurse Standorte (lat,lon)')
 col2.map(df)
 
 
+timearr = []
+timearr2 = []
+for i in json_data[0:100]:
+    #st.write(i)
+    #st.write(i["Kursbeginn"][0:4])
+    year = i["Kursbeginn"][0:4]
+    month = i["Kursbeginn"][5:7]
+    day = i["Kursbeginn"][8:10]
+    extra = {
+        "start_date": { 
+            "year":  year, 
+            "month": month,
+            "day": day
+            },
+        "text": {
+            "text": i["Kurstitel"]
+            } 
+        }
+    #rooinr = json.dumps(extra)
+    timearr.append(extra)
+
+#st.write(timearr)
+
+fortime = {"events":timearr}
+testobj = {
+    "events": [
+        {"start_date":{
+            "year": "2020"
+        }}
+    ]
+}
+#st.write(fortime)
+#makejson = json.loads(fortime)
+#timlin = json.dumps(fortime)
+#st.write(timlin)
+timeline(fortime, height=800)
+
+"""for j in range(0, len(timearr)-1):
+    timearr2.append(timearr[j])
+lasttime = timearr[len(timearr)-1]
+timearr2.append(lasttime[:-1])
+st.write(timearr2)"""
