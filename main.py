@@ -70,8 +70,27 @@ def organizers_and_their_courses_percentage_from_total():
         org_courses_total_dict[key] = (org_courses_total_dict[key] / total_courses)*100
     return org_courses_total_dict
 
+def pack_data_for_timeline(upper_range: int):
+    timearr = []
+    for i in json_data[0:upper_range]:
+        year = i["Kursbeginn"][0:4]
+        month = i["Kursbeginn"][5:7]
+        day = i["Kursbeginn"][8:10]
+        extra = {
+            "start_date": { 
+                "year":  year, 
+                "month": month,
+                "day": day
+                },
+            "text": {
+                "text": i["Kurstitel"]
+                } 
+            }
+        timearr.append(extra)
+    return {"events":timearr}
 
-col1, col2 = st.columns([3,3])
+
+col1, col2 = st.columns([6,6])
 
 table_unique_df = pd.DataFrame.from_dict(get_keys_and_their_values_that_are_unique(), orient='index', columns=['Values']).reset_index()
 table_unique_df.rename(columns={'index':'Key'},inplace=True)
@@ -89,52 +108,10 @@ fig = go.Figure(go.Bar(
 fig.update_layout(yaxis=dict(autorange="reversed"))
 col1.subheader('Top 20 Veranstalter visualisiert')
 col1.plotly_chart(fig, use_container_width=True)
+timeline(pack_data_for_timeline(100), height=800)
 
 col2.subheader('Dataset eindeutige Schlüssel')
 col2.table(table_unique_df)
 col2.subheader('Kurse Standorte (lat,lon)')
 col2.map(df)
 
-
-timearr = []
-timearr2 = []
-for i in json_data[0:100]:
-    #st.write(i)
-    #st.write(i["Kursbeginn"][0:4])
-    year = i["Kursbeginn"][0:4]
-    month = i["Kursbeginn"][5:7]
-    day = i["Kursbeginn"][8:10]
-    extra = {
-        "start_date": { 
-            "year":  year, 
-            "month": month,
-            "day": day
-            },
-        "text": {
-            "text": i["Kurstitel"]
-            } 
-        }
-    #rooinr = json.dumps(extra)
-    timearr.append(extra)
-
-#st.write(timearr)
-
-fortime = {"events":timearr}
-testobj = {
-    "events": [
-        {"start_date":{
-            "year": "2020"
-        }}
-    ]
-}
-#st.write(fortime)
-#makejson = json.loads(fortime)
-#timlin = json.dumps(fortime)
-#st.write(timlin)
-timeline(fortime, height=800)
-
-"""for j in range(0, len(timearr)-1):
-    timearr2.append(timearr[j])
-lasttime = timearr[len(timearr)-1]
-timearr2.append(lasttime[:-1])
-st.write(timearr2)"""
