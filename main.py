@@ -4,6 +4,7 @@ import json
 import streamlit as st
 import plotly.graph_objects as go
 from streamlit_timeline import timeline
+import matplotlib.pyplot as plt
 
 # load json file
 f = open('Top20k.json')
@@ -138,3 +139,25 @@ timeline(fortime, height=800)
 lasttime = timearr[len(timearr)-1]
 timearr2.append(lasttime[:-1])
 st.write(timearr2)"""
+
+def get_city_and_their_courses_total() -> dict:
+    """ {'Veranstalter1': 50, 'Veranstalter2': 60} .. """
+    dict = {}
+    for item in json_data:
+        if item['Anbieterstadt'] in dict.keys():
+            dict[item['Anbieterstadt']] += 1
+        else:
+            dict[item['Anbieterstadt']] = 1
+    return dict
+
+forcity = get_city_and_their_courses_total()
+citkey = forcity.keys()
+citval = forcity.values() # 
+
+st.write(list(citkey))# https://blog.finxter.com/python-print-dictionary-keys-without-dict_keys/
+
+fig1, ax1 = plt.subplots() # https://discuss.streamlit.io/t/how-to-draw-pie-chart-with-matplotlib-pyplot/13967/2   https://matplotlib.org/stable/gallery/pie_and_polar_charts/pie_features.html
+ax1.pie(list(citval), labels=list(citkey), autopct='%1.1f%%',
+        shadow=True, startangle=90)
+ax1.axis('equal')
+st.pyplot(fig1)
