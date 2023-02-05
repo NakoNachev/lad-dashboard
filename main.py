@@ -117,45 +117,24 @@ col2.subheader('Kurse Standorte (lat,lon)')
 col2.map(df)
 
 
-timearr = []
-timearr2 = []
-for i in json_data[0:100]:
-    #st.write(i)
-    #st.write(i["Kursbeginn"][0:4])
-    year = i["Kursbeginn"][0:4]
-    month = i["Kursbeginn"][5:7]
-    day = i["Kursbeginn"][8:10]
-    extra = {
-        "start_date": { 
-            "year":  year, 
-            "month": month,
-            "day": day
-            },
-        "text": {
-            "text": i["Kurstitel"]
-            } 
-        }
-    #rooinr = json.dumps(extra)
-    timearr.append(extra)
+def get_city_and_their_courses_total() -> dict:
+    """ {'Veranstalter1': 50, 'Veranstalter2': 60} .. """
+    dict = {}
+    for item in json_data:
+        if item['Anbieterstadt'] in dict.keys():
+            dict[item['Anbieterstadt']] += 1
+        else:
+            dict[item['Anbieterstadt']] = 1
+    return dict
 
-#st.write(timearr)
+forcity = get_city_and_their_courses_total()
+citkey = forcity.keys()
+citval = forcity.values() # 
 
-fortime = {"events":timearr}
-testobj = {
-    "events": [
-        {"start_date":{
-            "year": "2020"
-        }}
-    ]
-}
-#st.write(fortime)
-#makejson = json.loads(fortime)
-#timlin = json.dumps(fortime)
-#st.write(timlin)
-timeline(fortime, height=800)
+st.write(list(citkey))# https://blog.finxter.com/python-print-dictionary-keys-without-dict_keys/
 
-"""for j in range(0, len(timearr)-1):
-    timearr2.append(timearr[j])
-lasttime = timearr[len(timearr)-1]
-timearr2.append(lasttime[:-1])
-st.write(timearr2)"""
+fig1, ax1 = plt.subplots() # https://discuss.streamlit.io/t/how-to-draw-pie-chart-with-matplotlib-pyplot/13967/2   https://matplotlib.org/stable/gallery/pie_and_polar_charts/pie_features.html
+ax1.pie(list(citval), labels=list(citkey), autopct='%1.1f%%',
+        shadow=True, startangle=90)
+ax1.axis('equal')
+st.pyplot(fig1)
