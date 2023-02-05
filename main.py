@@ -71,8 +71,27 @@ def organizers_and_their_courses_percentage_from_total():
         org_courses_total_dict[key] = (org_courses_total_dict[key] / total_courses)*100
     return org_courses_total_dict
 
+def pack_data_for_timeline(upper_range: int):
+    timearr = []
+    for i in json_data[0:upper_range]:
+        year = i["Kursbeginn"][0:4]
+        month = i["Kursbeginn"][5:7]
+        day = i["Kursbeginn"][8:10]
+        extra = {
+            "start_date": { 
+                "year":  year, 
+                "month": month,
+                "day": day
+                },
+            "text": {
+                "text": i["Kurstitel"]
+                } 
+            }
+        timearr.append(extra)
+    return {"events":timearr}
 
-col1, col2 = st.columns([3,3])
+
+col1, col2 = st.columns([6,6])
 
 table_unique_df = pd.DataFrame.from_dict(get_keys_and_their_values_that_are_unique(), orient='index', columns=['Values']).reset_index()
 table_unique_df.rename(columns={'index':'Key'},inplace=True)
@@ -90,6 +109,7 @@ fig = go.Figure(go.Bar(
 fig.update_layout(yaxis=dict(autorange="reversed"))
 col1.subheader('Top 20 Veranstalter visualisiert')
 col1.plotly_chart(fig, use_container_width=True)
+timeline(pack_data_for_timeline(100), height=800)
 
 col2.subheader('Dataset eindeutige Schlüssel')
 col2.table(table_unique_df)
@@ -139,25 +159,3 @@ timeline(fortime, height=800)
 lasttime = timearr[len(timearr)-1]
 timearr2.append(lasttime[:-1])
 st.write(timearr2)"""
-
-def get_city_and_their_courses_total() -> dict:
-    """ {'Veranstalter1': 50, 'Veranstalter2': 60} .. """
-    dict = {}
-    for item in json_data:
-        if item['Anbieterstadt'] in dict.keys():
-            dict[item['Anbieterstadt']] += 1
-        else:
-            dict[item['Anbieterstadt']] = 1
-    return dict
-
-forcity = get_city_and_their_courses_total()
-citkey = forcity.keys()
-citval = forcity.values() # 
-
-st.write(list(citkey))# https://blog.finxter.com/python-print-dictionary-keys-without-dict_keys/
-
-fig1, ax1 = plt.subplots() # https://discuss.streamlit.io/t/how-to-draw-pie-chart-with-matplotlib-pyplot/13967/2   https://matplotlib.org/stable/gallery/pie_and_polar_charts/pie_features.html
-ax1.pie(list(citval), labels=list(citkey), autopct='%1.1f%%',
-        shadow=True, startangle=90)
-ax1.axis('equal')
-st.pyplot(fig1)
