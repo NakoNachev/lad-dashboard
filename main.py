@@ -5,7 +5,10 @@ import streamlit as st
 import plotly.graph_objects as go
 from streamlit_timeline import timeline
 import matplotlib.pyplot as plt
+
+# set up main layout to use whole width of screen
 st.set_page_config(layout="wide")
+
 # load json file
 f = open('Top20k.json')
 json_data = json.load(f)
@@ -90,51 +93,63 @@ def pack_data_for_timeline(upper_range: int):
         timearr.append(extra)
     return {"events":timearr}
 
+def get_city_and_their_courses_total() -> dict:
+    cities_and_corses = {}
+    for item in json_data:
+        if item['Anbieterstadt'] in cities_and_corses.keys():
+            cities_and_corses[item['Anbieterstadt']] += 1
+        else:
+            cities_and_corses[item['Anbieterstadt']] = 1
 
-col1, col2, col3 = st.columns([6,4,2])
+    cities_and_corses = dict(sorted(cities_and_corses.items(), key=lambda x: x[1], reverse=True))
+    filtered_data = {}
+    filtered_data['other'] = 0
+    counter = 0
+    for key, value in cities_and_corses.items():
+        if counter < 10:
+            filtered_data[key]=value
+        else:
+            filtered_data['other'] = filtered_data['other'] + value
+        counter = counter+1
+    return filtered_data
 
+def plot_pie():
+    city_data = get_city_and_their_courses_total()
+
+    fig1, ax1 = plt.subplots() # https://discuss.streamlit.io/t/how-to-draw-pie-chart-with-matplotlib-pyplot/13967/2   https://matplotlib.org/stable/gallery/pie_and_polar_charts/pie_features.html
+    ax1.pie(list(city_data.values()), labels=list(city_data.keys()), autopct='%1.1f%%',
+        shadow=False, startangle=90)
+    ax1.axis('equal')
+    col3.pyplot(fig1)
+
+def prep_organizers_chart():
+    y_values,x_values = get_organizer_and_their_courses_total_bar_values(20,True)
+    fig = go.Figure(go.Bar(
+            x=x_values,
+            y=y_values,
+            orientation='h'))
+    fig.update_layout(yaxis=dict(autorange="reversed"))
+    return fig
+
+# set up columns
+col1, col2, col3 = st.columns([4,4,4])
+
+# set up col1
 table_unique_df = pd.DataFrame.from_dict(get_keys_and_their_values_that_are_unique(), orient='index', columns=['Values']).reset_index()
 table_unique_df.rename(columns={'index':'Key'},inplace=True)
 table_top_organizers_df = pd.DataFrame.from_dict(get_top_or_bottom_n_organizers(3, True), orient='index', columns=['Values']).reset_index()
 table_top_organizers_df.rename(columns={'index':'Key'},inplace=True)
 col1.subheader('Top 3 Veranstalter')
 col1.table(table_top_organizers_df)
-
-y_values,x_values = get_organizer_and_their_courses_total_bar_values(20,True)
-
-fig = go.Figure(go.Bar(
-            x=x_values,
-            y=y_values,
-            orientation='h'))
-fig.update_layout(yaxis=dict(autorange="reversed"))
 col1.subheader('Top 20 Veranstalter visualisiert')
-col1.plotly_chart(fig, use_container_width=True)
-timeline(pack_data_for_timeline(100), height=800)
+col1.plotly_chart(prep_organizers_chart(), use_container_width=True)
 
+# set up col 2
 col2.subheader('Dataset eindeutige Schlüssel')
 col2.table(table_unique_df)
 col2.subheader('Kurse Standorte (lat,lon)')
 col2.map(df)
 
-
-def get_city_and_their_courses_total() -> dict:
-    """ {'Veranstalter1': 50, 'Veranstalter2': 60} .. """
-    dict = {}
-    for item in json_data:
-        if item['Anbieterstadt'] in dict.keys():
-            dict[item['Anbieterstadt']] += 1
-        else:
-            dict[item['Anbieterstadt']] = 1
-    return dict
-
-forcity = get_city_and_their_courses_total()
-citkey = forcity.keys()
-citval = forcity.values() # 
-
-st.write(list(citkey))# https://blog.finxter.com/python-print-dictionary-keys-without-dict_keys/
-
-fig1, ax1 = plt.subplots() # https://discuss.streamlit.io/t/how-to-draw-pie-chart-with-matplotlib-pyplot/13967/2   https://matplotlib.org/stable/gallery/pie_and_polar_charts/pie_features.html
-ax1.pie(list(citval), labels=list(citkey), autopct='%1.1f%%',
-        shadow=False, startangle=90)
-ax1.axis('equal')
-st.pyplot(fig1)
+# set up col 3
+plot_pie()
+timeline(pack_data_for_timeline(100), height=800)
