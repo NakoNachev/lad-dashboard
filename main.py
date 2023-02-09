@@ -5,7 +5,7 @@ import streamlit as st
 import plotly.graph_objects as go
 from streamlit_timeline import timeline
 import matplotlib.pyplot as plt
-
+st.set_page_config(layout="wide")
 # load json file
 f = open('Top20k.json')
 json_data = json.load(f)
@@ -91,7 +91,7 @@ def pack_data_for_timeline(upper_range: int):
     return {"events":timearr}
 
 
-col1, col2 = st.columns([6,6])
+col1, col2, col3 = st.columns([6,4,2])
 
 table_unique_df = pd.DataFrame.from_dict(get_keys_and_their_values_that_are_unique(), orient='index', columns=['Values']).reset_index()
 table_unique_df.rename(columns={'index':'Key'},inplace=True)
@@ -135,6 +135,6 @@ st.write(list(citkey))# https://blog.finxter.com/python-print-dictionary-keys-wi
 
 fig1, ax1 = plt.subplots() # https://discuss.streamlit.io/t/how-to-draw-pie-chart-with-matplotlib-pyplot/13967/2   https://matplotlib.org/stable/gallery/pie_and_polar_charts/pie_features.html
 ax1.pie(list(citval), labels=list(citkey), autopct='%1.1f%%',
-        shadow=True, startangle=90)
+        shadow=False, startangle=90)
 ax1.axis('equal')
 st.pyplot(fig1)
