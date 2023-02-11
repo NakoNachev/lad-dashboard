@@ -3,11 +3,25 @@ import numpy as np
 import json
 import streamlit as st
 import plotly.graph_objects as go
+import plotly.express as px
 from streamlit_timeline import timeline
 import matplotlib.pyplot as plt
+import random
+import matplotlib.colors as mcolors
+import streamlit_nested_layout 
 
 # set up main layout to use whole width of screen
 st.set_page_config(layout="wide")
+
+# markdown/styles 
+span_alignment="""
+<style>
+span {
+  text-align: center
+}
+</style>
+"""
+st.markdown(span_alignment, unsafe_allow_html=True)
 
 # load json file
 f = open('Top20k.json')
@@ -74,7 +88,7 @@ def organizers_and_their_courses_percentage_from_total():
         org_courses_total_dict[key] = (org_courses_total_dict[key] / total_courses)*100
     return org_courses_total_dict
 
-def pack_data_for_timeline(upper_range: int):
+def pack_data_for_timeline(upper_range: int) -> dict:
     timearr = []
     for i in json_data[0:upper_range]:
         year = i["Kursbeginn"][0:4]
@@ -94,6 +108,7 @@ def pack_data_for_timeline(upper_range: int):
     return {"events":timearr}
 
 def get_city_and_their_courses_total() -> dict:
+    """ returns each city with its total courses"""
     cities_and_corses = {}
     for item in json_data:
         if item['Anbieterstadt'] in cities_and_corses.keys():
@@ -101,26 +116,55 @@ def get_city_and_their_courses_total() -> dict:
         else:
             cities_and_corses[item['Anbieterstadt']] = 1
 
-    cities_and_corses = dict(sorted(cities_and_corses.items(), key=lambda x: x[1], reverse=True))
+    return cities_and_corses
+
+def get_top_n_cities_data_for_pie_chart(first_top_cities: int) -> dict:
+    """ packs the data for the pie chart. Takes the first n cities, packs the rest into 'other' category """
+    cities_and_corses = dict(sorted(get_city_and_their_courses_total().items(), key=lambda x: x[1], reverse=True))
     filtered_data = {}
-    filtered_data['other'] = 0
+    filtered_data['Andere'] = 0
     counter = 0
     for key, value in cities_and_corses.items():
-        if counter < 10:
+        if counter < first_top_cities:
             filtered_data[key]=value
         else:
-            filtered_data['other'] = filtered_data['other'] + value
+            filtered_data['Andere'] = filtered_data['Andere'] + value
         counter = counter+1
     return filtered_data
 
-def plot_pie():
-    city_data = get_city_and_their_courses_total()
-
+def prep_plot_data():
+    """ creates the figure for the pie chart """
+    city_data = get_top_n_cities_data_for_pie_chart(10)
+    colors = random.choices(list(mcolors.CSS4_COLORS.values()),k = len(city_data.keys()))
     fig1, ax1 = plt.subplots() # https://discuss.streamlit.io/t/how-to-draw-pie-chart-with-matplotlib-pyplot/13967/2   https://matplotlib.org/stable/gallery/pie_and_polar_charts/pie_features.html
-    ax1.pie(list(city_data.values()), labels=list(city_data.keys()), autopct='%1.1f%%',
+    ax1.pie(list(city_data.values()), colors=colors, labels=list(city_data.keys()), autopct='%1.1f%%',
         shadow=False, startangle=90)
     ax1.axis('equal')
-    col3.pyplot(fig1)
+    return fig1
+
+
+
+    
+def prep_plot_data_2():
+    """ creates the figure for the pie chart 
+        source can be found: https://medium.com/@kvnamipara/a-better-visualisation-of-pie-charts-by-matplotlib-935b7667d77f """
+    city_data = get_top_n_cities_data_for_pie_chart(10)
+    colors = random.choices(list(mcolors.CSS4_COLORS.values()),k = len(city_data.keys()))
+    fig1, ax1 = plt.subplots()
+    ax1.pie(list(city_data.values()), colors=colors, labels=list(city_data.keys()), autopct='%1.1f%%',
+        shadow=False, startangle=90, pctdistance=0.85)
+    centre_circle = plt.Circle((0,0),0.70,fc='white')
+    fig = plt.gcf()
+    fig.gca().add_artist(centre_circle)
+    ax1.axis('equal')
+    return fig1
+
+def plotly_pie():
+    df = pd.DataFrame.from_dict(get_top_n_cities_data_for_pie_chart(10), orient='index', columns=['Werte']).reset_index()
+    df.rename(columns={'index':'Schlüssel'},inplace=True)
+    print(df)
+    fig = px.pie(df, values='Werte', names='Schlüssel', color_discrete_sequence=px.colors.sequential.RdBu)
+    return fig
 
 def prep_organizers_chart():
     y_values,x_values = get_organizer_and_their_courses_total_bar_values(20,True)
@@ -131,25 +175,42 @@ def prep_organizers_chart():
     fig.update_layout(yaxis=dict(autorange="reversed"))
     return fig
 
-# set up columns
-col1, col2, col3 = st.columns([4,4,4])
+def get_average_courses_total_per_city():
+    city_and_courses_total = get_city_and_their_courses_total()
+    values = list(city_and_courses_total.values())
+    total = np.sum(values)
+    return total / len(values)
 
-# set up col1
-table_unique_df = pd.DataFrame.from_dict(get_keys_and_their_values_that_are_unique(), orient='index', columns=['Values']).reset_index()
-table_unique_df.rename(columns={'index':'Key'},inplace=True)
-table_top_organizers_df = pd.DataFrame.from_dict(get_top_or_bottom_n_organizers(3, True), orient='index', columns=['Values']).reset_index()
-table_top_organizers_df.rename(columns={'index':'Key'},inplace=True)
-col1.subheader('Top 3 Veranstalter')
-col1.table(table_top_organizers_df)
-col1.subheader('Top 20 Veranstalter visualisiert')
-col1.plotly_chart(prep_organizers_chart(), use_container_width=True)
+# initiate columns
+col1, col2 = st.columns([4,4])
 
-# set up col 2
-col2.subheader('Dataset eindeutige Schlüssel')
-col2.table(table_unique_df)
-col2.subheader('Kurse Standorte (lat,lon)')
-col2.map(df)
+# set up col2
+table_unique_df = pd.DataFrame.from_dict(get_keys_and_their_values_that_are_unique(), orient='index', columns=['Werte']).reset_index()
+table_unique_df.rename(columns={'index':'Schlüssel'},inplace=True)
+table_top_organizers_df = pd.DataFrame.from_dict(get_top_or_bottom_n_organizers(3, True), orient='index', columns=['Werte']).reset_index()
+table_top_organizers_df.rename(columns={'index':'Schlüssel'},inplace=True)
+col2.subheader('Top 3 Veranstalter')
+col2.table(table_top_organizers_df)
+col2.subheader('Top 20 Veranstalter visualisiert')
+col2.plotly_chart(prep_organizers_chart(), use_container_width=True)
+# col2.pyplot(prep_plot_data())   # change prep_plot_data to prep_plot_data_2() to display pie chart as circle
 
-# set up col 3
-plot_pie()
-timeline(pack_data_for_timeline(100), height=800)
+with col2:
+    inner_columns = st.columns([0.5,2.5,0.5])
+    inner_columns[1].plotly_chart(plotly_pie())
+
+# set up col 1
+col1.subheader('Kurse Standorte (lat,lon)')
+col1.map(df)
+col1.subheader('Dataset eindeutige Schlüssel')
+col1.caption("caption")
+col1.table(table_unique_df)
+
+# timeline(pack_data_for_timeline(100), height=800)
+
+with st.sidebar:
+    st.subheader('Metriken')
+    st.metric('Datensätze', '20k')
+    st.metric('Anzahl Veranstalter',len(get_organizer_and_their_courses_total().keys()))
+    st.metric('Anzahl Städte', len(get_city_and_their_courses_total().keys()))
+    st.metric('Durchschnittliche Anzahl Kurse pro Stadt', np.round(get_average_courses_total_per_city(),2))
