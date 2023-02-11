@@ -203,7 +203,6 @@ with col2:
 col1.subheader('Kurse Standorte (lat,lon)')
 col1.map(df)
 col1.subheader('Dataset eindeutige Schlüssel')
-col1.caption("caption")
 col1.table(table_unique_df)
 
 # timeline(pack_data_for_timeline(100), height=800)
