@@ -193,7 +193,7 @@ col2.subheader('Top 3 Veranstalter')
 col2.table(table_top_organizers_df)
 col2.subheader('Top 20 Veranstalter visualisiert')
 col2.plotly_chart(prep_organizers_chart(), use_container_width=True)
-# col2.pyplot(prep_plot_data())   # change prep_plot_data to prep_plot_data_2() to display pie chart as circle
+col2.subheader('Kurse gruppiert nach Städte')
 
 with col2:
     inner_columns = st.columns([0.5,2.5,0.5])
